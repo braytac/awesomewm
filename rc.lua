@@ -10,6 +10,11 @@ local beautiful = require("beautiful")
 local naughty = require("naughty")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
+-- Enable hotkeys help widget for VIM and other apps
+-- when client with a matching name is opened:
+require("awful.hotkeys_popup.keys")
+
+os.setlocale(os.getenv("LANG"))
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -38,10 +43,9 @@ end
 
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
-beautiful.init(awful.util.get_themes_dir() .. "default/theme.lua")
+beautiful.init(gears.filesystem.get_themes_dir() .. "mio/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
--- terminal = "xterm"
 terminal = "terminator"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
@@ -99,13 +103,13 @@ myawesomemenu = {
    { "quit", function() awesome.quit() end}
 }
 
--- mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
---                                     { "open terminal", terminal }
---                                   }
---                         })
+mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
+                                    { "open terminal", terminal }
+                                  }
+                        })
 
 --mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon,
---                                     menu = mymainmenu })
+  --                                   menu = mymainmenu })
 
 -- Menubar configuration
 menubar.utils.terminal = terminal -- Set the terminal for applications that require it
@@ -119,7 +123,7 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 mytextclock = wibox.widget.textclock()
 
 -- Create a wibox for each screen and add it
-local taglist_buttons = awful.util.table.join(
+local taglist_buttons = gears.table.join(
                     awful.button({ }, 1, function(t) t:view_only() end),
                     awful.button({ modkey }, 1, function(t)
                                               if client.focus then
@@ -136,7 +140,7 @@ local taglist_buttons = awful.util.table.join(
                     awful.button({ }, 5, function(t) awful.tag.viewprev(t.screen) end)
                 )
 
-local tasklist_buttons = awful.util.table.join(
+local tasklist_buttons = gears.table.join(
                      awful.button({ }, 1, function (c)
                                               if c == client.focus then
                                                   c.minimized = true
@@ -185,10 +189,10 @@ awful.screen.connect_for_each_screen(function(s)
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
-    -- Create an imagebox widget which will contains an icon indicating which layout we're using.
+    -- Create an imagebox widget which will contain an icon indicating which layout we're using.
     -- We need one layoutbox per screen.
     s.mylayoutbox = awful.widget.layoutbox(s)
-    s.mylayoutbox:buttons(awful.util.table.join(
+    s.mylayoutbox:buttons(gears.table.join(
                            awful.button({ }, 1, function () awful.layout.inc( 1) end),
                            awful.button({ }, 3, function () awful.layout.inc(-1) end),
                            awful.button({ }, 4, function () awful.layout.inc( 1) end),
@@ -224,15 +228,15 @@ end)
 -- }}}
 
 -- {{{ Mouse bindings
-root.buttons(awful.util.table.join(
-    --awful.button({ }, 3, function () mymainmenu:toggle() end),
+root.buttons(gears.table.join(
+    awful.button({ }, 3, function () mymainmenu:toggle() end),
     awful.button({ }, 4, awful.tag.viewnext),
     awful.button({ }, 5, awful.tag.viewprev)
 ))
 -- }}}
 
 -- {{{ Key bindings
-globalkeys = awful.util.table.join(
+globalkeys = gears.table.join(
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description="show help", group="awesome"}),
     awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
@@ -241,7 +245,18 @@ globalkeys = awful.util.table.join(
               {description = "view next", group = "tag"}),
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
               {description = "go back", group = "tag"}),
+    awful.key({ }, "XF86HomePage", function ()    
+        awful.spawn("pcmanfm", false) end),    
+    awful.key({ }, "XF86Tools", function ()    
+        awful.spawn("audacious", false) end),            
 
+    -- Soundkeys pulse    
+    awful.key({ }, "XF86AudioRaiseVolume", function ()    
+        awful.spawn("pactl set-sink-volume @DEFAULT_SINK@ +5%", false) end),    
+    awful.key({ }, "XF86AudioLowerVolume", function ()    
+        awful.spawn("pactl set-sink-volume @DEFAULT_SINK@ -5%", false) end),    
+    awful.key({ }, "XF86AudioMute", function ()    
+        awful.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle", false) end),                  
     awful.key({ modkey,           }, "j",
         function ()
             awful.client.focus.byidx( 1)
@@ -314,10 +329,9 @@ globalkeys = awful.util.table.join(
               {description = "restore minimized", group = "client"}),
 
     -- Prompt
-    --awful.key({ modkey },            "r",     function () awful.screen.focused().mypromptbox:run() end,
-    --          {description = "run prompt", group = "launcher"}),
-
-    awful.key({modkey }, "r", function() awful.util.spawn( "dmenu_run -b -i -l 10" ) end),
+    awful.key({ modkey },            "r",     function () 
+        awful.util.spawn_with_shell( "$(dmenu_path | dmenu -b -l 10 -nb '#000000' -sb '#FFFFFF' -sf '#000000')") end,     
+              {description = "run prompt", group = "launcher"}),
 
     awful.key({ modkey }, "x",
               function ()
@@ -334,7 +348,7 @@ globalkeys = awful.util.table.join(
               {description = "show the menubar", group = "launcher"})
 )
 
-clientkeys = awful.util.table.join(
+clientkeys = gears.table.join(
     awful.key({ modkey,           }, "f",
         function (c)
             c.fullscreen = not c.fullscreen
@@ -363,14 +377,26 @@ clientkeys = awful.util.table.join(
             c.maximized = not c.maximized
             c:raise()
         end ,
-        {description = "maximize", group = "client"})
+        {description = "(un)maximize", group = "client"}),
+    awful.key({ modkey, "Control" }, "m",
+        function (c)
+            c.maximized_vertical = not c.maximized_vertical
+            c:raise()
+        end ,
+        {description = "(un)maximize vertically", group = "client"}),
+    awful.key({ modkey, "Shift"   }, "m",
+        function (c)
+            c.maximized_horizontal = not c.maximized_horizontal
+            c:raise()
+        end ,
+        {description = "(un)maximize horizontally", group = "client"})
 )
 
 -- Bind all key numbers to tags.
--- Be careful: we use keycodes to make it works on any keyboard layout.
+-- Be careful: we use keycodes to make it work on any keyboard layout.
 -- This should map on the top row of your keyboard, usually 1 to 9.
 for i = 1, 9 do
-    globalkeys = awful.util.table.join(globalkeys,
+    globalkeys = gears.table.join(globalkeys,
         -- View tag only.
         awful.key({ modkey }, "#" .. i + 9,
                   function ()
@@ -416,7 +442,7 @@ for i = 1, 9 do
     )
 end
 
-clientbuttons = awful.util.table.join(
+clientbuttons = gears.table.join(
     awful.button({ }, 1, function (c) client.focus = c; c:raise() end),
     awful.button({ modkey }, 1, awful.mouse.client.move),
     awful.button({ modkey }, 3, awful.mouse.client.resize))
@@ -496,7 +522,7 @@ end)
 -- Add a titlebar if titlebars_enabled is set to true in the rules.
 client.connect_signal("request::titlebars", function(c)
     -- buttons for the titlebar
-    local buttons = awful.util.table.join(
+    local buttons = gears.table.join(
         awful.button({ }, 1, function()
             client.focus = c
             c:raise()
@@ -546,22 +572,10 @@ end)
 client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
 -- }}}
-
--- os.execute("setxkbmap es &")
--- os.execute("xcompmgr &")
-os.execute("clipit &")
-os.execute("nm-applet &")
-os.execute("lxpolkit &")
--- os.execute("xcompmgr & ")
---os.execute("udevil mount /dev/sdb1 &")
--- os.execute("udevil mount /dev/sda1 &")
--- os.execute("compton &") -- para permitir transparencias de conky
--- os.execute("sh .conky/conky-startup.sh & ")
-os.execute("export BROWSER=firefox")
-os.execute("setxkbmap -option terminate:ctrl_alt_bksp")
--- os.execute("sleep 5s")
--- os.execute("smplayer")
-os.execute("xrdb ~/.Xresources & ")
-os.execute("~/remoto.sh & ")
-os.execute("xset -dpms & ")
+--
+os.execute('clipit &')
+os.execute('nm-applet &')
+os.execute('compton &')
+os.execute('.conky/conky-startup.sh &')
+os.execute('.local/bin/play-with-mpv &')
 
