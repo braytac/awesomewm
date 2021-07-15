@@ -449,6 +449,28 @@ client.connect_signal("request::default_keybindings", function()
                 c:raise()
             end ,
             {description = "(un)maximize horizontally", group = "client"}),
+        awful.key({ modkey, "Shift"   }, "ç",
+            function (c)
+            
+            ruled.client.append_rule {
+                id         = "titlebars",
+                rule_any   = { type = { "normal", "dialog" } },
+                properties = { titlebars_enabled = true }    
+            } 
+                awful.titlebar.show(c)
+            end ,
+            {description = "mostrarTitlebar", group = "client"}),
+        awful.key({ modkey, }, "ç",
+            function (c)
+            
+            ruled.client.append_rule {
+                id         = "titlebars",
+                rule_any   = { type = { "normal", "dialog" } },
+                properties = { titlebars_enabled = false }    
+            } 
+                awful.titlebar.hide(c)
+            end ,
+            {description = "ocultarTitlebar", group = "client"}),
     })
 end)
 
